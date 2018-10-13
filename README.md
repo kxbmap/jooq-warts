@@ -1,5 +1,7 @@
 # jooq-warts #
 
+[![Build Status](https://travis-ci.org/kxbmap/jooq-warts.svg?branch=master)](https://travis-ci.org/kxbmap/jooq-warts)
+
 Port jOOQ-checker to WartRemover
 
 ## License ##
