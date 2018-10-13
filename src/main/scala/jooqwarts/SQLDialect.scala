@@ -1,0 +1,114 @@
+/*
+ * Copyright 2018 Tsukasa Kitachi
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package jooqwarts
+
+import org.jooq.{Allow, Require, Support, SQLDialect => Dialect}
+import org.wartremover.{WartTraverser, WartUniverse}
+
+object SQLDialect extends WartTraverser {
+
+  private[this] val dialects = Dialect.values().map(d => d.name() -> d).toMap
+  private[this] val families = Dialect.families().toSet
+
+  def apply(u: WartUniverse): u.Traverser = {
+    import u.universe._
+
+    val support = typeOf[Support]
+    val allow = typeOf[Allow]
+    val require = typeOf[Require]
+
+    def getAnnotation(s: Symbol, a: Type) = s.annotations.find(_.tree.tpe =:= a)
+
+    def getDialects(a: Annotation, defaults: Set[Dialect] = Set.empty) =
+      a.tree.children.tail match {
+        case Nil => defaults
+        case value :: _ => value  // value =
+          .children.tail.head     // Array(...)
+          .children.tail          // arguments
+          .map(x => dialects(show(x)))
+          .toSet
+      }
+
+    def showDialects(xs: Iterable[Dialect]) = xs.toSeq.sorted.mkString("[", ", ", "]")
+
+    def collectAllowed(owners: List[Symbol], acc: Set[Dialect] = Set.empty): Set[Dialect] =
+      owners match {
+        case Nil => acc
+        case x :: xs => collectAllowed(
+          xs,
+          acc ++ getAnnotation(x, allow).fold(Set.empty[Dialect])(getDialects(_, families)))
+      }
+
+    def collectRequired(owners: List[Symbol]): Set[Dialect] =
+      owners match {
+        case Nil => Set.empty
+        case x :: xs =>
+          getAnnotation(x, require) match {
+            case Some(r) => getDialects(r)
+            case None => collectRequired(xs)
+          }
+      }
+
+    new Traverser {
+      private[this] var owners: List[Symbol] = rootMirror.RootClass :: Nil
+
+      override def traverse(tree: Tree): Unit =
+        tree match {
+          // Ignore trees marked by SuppressWarnings
+          case t if hasWartAnnotation(u)(t) =>
+
+          case t: Select =>
+            getAnnotation(t.symbol, support).foreach { s =>
+              val supported = getDialects(s, families)
+              (for {
+                _ <- checkAllowed(supported)
+                _ <- checkRequired(supported)
+              } yield ()).swap.foreach(error(u)(tree.pos, _))
+            }
+            super.traverse(tree)
+
+          case _ =>
+            super.traverse(tree)
+        }
+
+      private def checkAllowed(supported: Set[Dialect]): Either[String, Unit] = {
+        val allowed = collectAllowed(owners)
+        if (allowed.isEmpty)
+          Left("No jOOQ API usage is allowed at current scope. Use @Allow.")
+        else if (allowed.exists(a => supported.exists(a.supports)))
+          Right(())
+        else
+          Left(s"The allowed dialects in scope ${showDialects(allowed)} do not include any of the supported dialects: ${showDialects(supported)}")
+      }
+
+      private def checkRequired(supported: Set[Dialect]): Either[String, Unit] = {
+        val required = collectRequired(owners)
+        if (required.exists(r => supported.forall(!r.supports(_))))
+          Left(s"Not all of the required dialects ${showDialects(required)} from the current scope are supported ${showDialects(supported)}")
+        else
+          Right(())
+      }
+
+      override def atOwner(owner: Symbol)(traverse: => Unit): Unit = {
+        owners ::= owner
+        super.atOwner(owner)(traverse)
+        owners = owners.tail
+      }
+    }
+  }
+
+}
