@@ -1,12 +1,16 @@
+import com.typesafe.sbt.pgp.PgpKeys._
 import sbt.Keys._
 import sbt._
+import sbtrelease.ReleasePlugin
+import sbtrelease.ReleasePlugin.autoImport._
+import sbtrelease.ReleaseStateTransformations._
 import xerial.sbt.Sonatype
 import xerial.sbt.Sonatype.GitHubHosting
 import xerial.sbt.Sonatype.SonatypeKeys._
 
 object Publish extends AutoPlugin {
 
-  override def requires: Plugins = Sonatype
+  override def requires: Plugins = Sonatype && ReleasePlugin
 
   override def trigger: PluginTrigger = allRequirements
 
@@ -20,7 +24,22 @@ object Publish extends AutoPlugin {
     publishMavenStyle := true,
     publishTo := sonatypePublishTo.value,
     sonatypeProjectHosting := Some(GitHubHosting("kxbmap", "configs", organizationName.value, "kxbmap@gmail.com")),
-    pomIncludeRepository := { _ => false }
+    pomIncludeRepository := { _ => false },
+
+    releaseCrossBuild := true,
+    releasePublishArtifactsAction := publishSigned.value,
+    releaseProcess := Seq(
+      checkSnapshotDependencies,
+      inquireVersions,
+      runClean,
+      runTest,
+      setReleaseVersion,
+      commitReleaseVersion,
+      tagRelease,
+      publishArtifacts,
+      setNextVersion,
+      commitNextVersion
+    )
   )
 
 }
