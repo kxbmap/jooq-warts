@@ -18,6 +18,7 @@ package jooqwarts
 
 import org.jooq.{Allow, Require, Support, SQLDialect => Dialect}
 import org.wartremover.{WartTraverser, WartUniverse}
+import scala.annotation.tailrec
 
 object SQLDialect extends WartTraverser {
 
@@ -45,6 +46,7 @@ object SQLDialect extends WartTraverser {
 
     def showDialects(xs: Iterable[Dialect]) = xs.toSeq.sorted.mkString("[", ", ", "]")
 
+    @tailrec
     def collectAllowed(owners: List[Symbol], acc: Set[Dialect] = Set.empty): Set[Dialect] =
       owners match {
         case Nil => acc
@@ -53,6 +55,7 @@ object SQLDialect extends WartTraverser {
           acc ++ getAnnotation(x, allow).fold(Set.empty[Dialect])(getDialects(_, families)))
       }
 
+    @tailrec
     def collectRequired(owners: List[Symbol]): Set[Dialect] =
       owners match {
         case Nil => Set.empty
