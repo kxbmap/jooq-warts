@@ -16,15 +16,9 @@ Test / scalacOptions ++= {
 
 libraryDependencies ++= Seq(
   "org.jooq" % "jooq" % "3.11.5",
-  "org.wartremover" %% "wartremover" % "2.3.7",
-  "org.scalatest" %% "scalatest" % scalatestVersion(scalaVersion.value) % Test
+  "org.wartremover" %% "wartremover" % "2.4.3" cross CrossVersion.full,
+  "org.scalatest" %% "scalatest" % "3.0.8" % Test
 )
-
-def scalatestVersion(scalaVersion: String) =
-  CrossVersion.partialVersion(scalaVersion) match {
-    case Some((2, 13)) => "3.0.6-SNAP3"
-    case _ => "3.0.5"
-  }
 
 enablePlugins(AutomateHeaderPlugin)
 Test / headerSources / excludeFilter ~= { _ || "ResultAssertions.scala" }

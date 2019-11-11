@@ -1,4 +1,5 @@
-import com.typesafe.sbt.pgp.PgpKeys._
+import com.jsuereth.sbtpgp.PgpKeys._
+import com.jsuereth.sbtpgp.SbtPgp
 import sbt.Keys._
 import sbt._
 import sbtrelease.ReleasePlugin
@@ -10,7 +11,7 @@ import xerial.sbt.Sonatype.SonatypeKeys._
 
 object Publish extends AutoPlugin {
 
-  override def requires: Plugins = Sonatype && ReleasePlugin
+  override def requires: Plugins = Sonatype && ReleasePlugin && SbtPgp
 
   override def trigger: PluginTrigger = allRequirements
 
