@@ -23,7 +23,7 @@ object Publish extends AutoPlugin {
       "Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0")
     ),
     publishMavenStyle := true,
-    publishTo := sonatypePublishTo.value,
+    publishTo := sonatypePublishToBundle.value,
     sonatypeProjectHosting := Some(GitHubHosting("kxbmap", "configs", organizationName.value, "kxbmap@gmail.com")),
     pomIncludeRepository := { _ => false },
 
@@ -38,6 +38,7 @@ object Publish extends AutoPlugin {
       commitReleaseVersion,
       tagRelease,
       publishArtifacts,
+      releaseStepCommand("sonatypeBundleRelease"),
       setNextVersion,
       commitNextVersion
     )
