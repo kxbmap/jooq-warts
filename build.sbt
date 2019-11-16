@@ -15,7 +15,7 @@ Test / scalacOptions ++= {
 }
 
 libraryDependencies ++= Seq(
-  "org.jooq" % "jooq" % "3.11.5",
+  "org.jooq" % "jooq" % "3.12.3",
   "org.wartremover" %% "wartremover" % "2.4.3" cross CrossVersion.full,
   "org.scalatest" %% "scalatest" % "3.0.8" % Test
 )
